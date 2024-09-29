@@ -89,6 +89,28 @@ export class Vine extends SchemaBuilder {
   }
 
   /**
+   * Await the result of async transformers and assign them back to the
+   * validated object.
+   */
+  async #awaitTransformers<Schema extends SchemaTypes>(
+    validator: VineValidator<Schema, Record<string, any> | undefined>,
+    validated: Infer<Schema>
+  ) {
+    const properties = validator.getFieldsNamesWithTransformers()
+
+    if (!properties.length) {
+      return validated
+    }
+
+    const awaited = await Promise.all(properties.map((field) => validated[field]))
+
+    // Assign awaited values back to the validated object
+    properties.forEach((field, index) => (validated[field] = awaited[index]))
+
+    return validated
+  }
+
+  /**
    * Validate data against a schema. Optionally, you can define
    * error messages, fields, a custom messages provider,
    * or an error reporter.
@@ -102,7 +124,7 @@ export class Vine extends SchemaBuilder {
    * })
    * ```
    */
-  validate<Schema extends SchemaTypes>(
+  async validate<Schema extends SchemaTypes>(
     options: {
       /**
        * Schema to use for validation
@@ -116,7 +138,13 @@ export class Vine extends SchemaBuilder {
     } & ValidationOptions<Record<string, any> | undefined>
   ): Promise<Infer<Schema>> {
     const validator = this.compile(options.schema)
-    return validator.validate(options.data, options)
+    const validated = await validator.validate(options.data, options)
+
+    if (!options.shouldAwaitTransformers) {
+      return validated
+    }
+
+    return this.#awaitTransformers(validator, validated)
   }
 
   /**
@@ -147,6 +175,12 @@ export class Vine extends SchemaBuilder {
     } & ValidationOptions<Record<string, any> | undefined>
   ): Promise<[ValidationError, null] | [null, Infer<Schema>]> {
     const validator = this.compile(options.schema)
-    return validator.tryValidate(options.data, options)
+    const validated = validator.tryValidate(options.data, options)
+
+    if (!options.shouldAwaitTransformers) {
+      return validated
+    }
+
+    return this.#awaitTransformers(validator, validated)
   }
 }

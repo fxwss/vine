@@ -255,6 +255,11 @@ export type ValidationOptions<MetaData extends Record<string, any> | undefined> 
   messagesProvider?: MessagesProviderContact
 
   /**
+   * Control whether or not to await the result of async transformers
+   */
+  shouldAwaitTransformers?: boolean
+
+  /**
    * Validation errors are reported directly to an error reporter. The reporter
    * can decide how to format and output errors.
    */

@@ -160,6 +160,23 @@ export class VineValidator<
   }
 
   /**
+   * Get all transformers for the schema
+   */
+  getFieldsNamesWithTransformers(): (keyof Infer<Schema>)[] {
+    const schema = this.#compiled.schema.schema
+
+    if (!('properties' in schema)) {
+      return []
+    }
+
+    const properties = schema.properties
+
+    return properties
+      .filter((property) => 'transformFnId' in property)
+      .map((property) => property.propertyName)
+  }
+
+  /**
    * Performs validation without throwing the validation
    * exception. Instead, the validation errors are
    * returned as the first argument.
